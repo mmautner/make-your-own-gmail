@@ -24,13 +24,18 @@ app.directive('gmailLabel', ['GApi', '$rootScope',
   return {
     restrict: 'A',
     templateUrl: 'views/labels.html',
+    scope: {
+      name: '@'
+    },
     link: function(scope, element, attrs) {
-      GApi.executeAuth('gmail', 'users.labels.get', {
-        'userId': $rootScope.gapi.user.email,
-        'id': attrs.name,
-        'fields': 'id,name,threadsTotal,threadsUnread,type'
-      }).then(function(data) {
-        scope.label = data;
+      attrs.$observe('name', function(value) {
+        GApi.executeAuth('gmail', 'users.labels.get', {
+          'userId': $rootScope.gapi.user.email,
+          'id': attrs.name,
+          'fields': 'id,name,threadsTotal,threadsUnread,type'
+        }).then(function(data) {
+          scope.label = data;
+        });
       });
     }
   };
