@@ -1,0 +1,9 @@
+{
+  "name": "scriptermail-ui",
+  "root": "app",
+  "clean_urls": true,
+  "error_page": "error.html",
+  "routes": {
+    "**": "index.html"
+  }
+}

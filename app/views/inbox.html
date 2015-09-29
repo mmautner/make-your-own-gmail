@@ -1,0 +1,25 @@
+<div class="row">
+  <div class="col-sm-2">
+    <h3>Labels</h3>
+    <ul class="list-unstyled">
+      <li gmail-label name="INBOX"></li>
+      <li gmail-label name="IMPORTANT"></li>
+      <li gmail-label name="STARRED"></li>
+      <li gmail-label name="UNREAD"></li>
+      <li gmail-label name="DRAFT"></li>
+      <li gmail-label name="SENT"></li>
+      <li gmail-label name="TRASH"></li>
+      <li gmail-label name="CHAT"></li>
+      <li gmail-label name="SPAM"></li>
+    </ul>
+  </div>
+  <div class="col-sm-10">
+    <h1>Inbox</h1>
+    <ul class="list-unstyled">
+      <li ng-repeat="thread in threads">
+        <a ui-sref="label.thread({id: thread.id})">{{thread.snippet}}</a>
+      </li>
+    </ul>
+  </div>
+</div>
+<div ui-view></div>

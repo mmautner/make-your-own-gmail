@@ -1,0 +1,12 @@
+<div class="row">
+  <h1>{{messages[0].snippet}}</h1>
+  <ul class="list-unstyled">
+    <li ng-repeat="message in messages">
+      <span am-time-ago="message.internalDate | num"></span>
+      <span ng-repeat="label in message.labelIds">
+        {{label}}
+      </span>
+      {{message.snippet}}
+    </li>
+  </ul>
+</div>
