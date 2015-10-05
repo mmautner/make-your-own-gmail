@@ -16,12 +16,10 @@ deployment:
   staging:
     branch: staging
     commands:
-      - gulp
       - npm install -g divshot-cli
       - divshot push staging --token $DIVSHOT_TOKEN
   production:
     branch: master
     commands:
-      - gulp
       - npm install -g divshot-cli
       - divshot push production --token $DIVSHOT_TOKEN
