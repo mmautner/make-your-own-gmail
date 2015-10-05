@@ -14,6 +14,13 @@ app.filter('html', ['$sce', function ($sce) {
     return $sce.trustAsHtml(text);
   };
 }]);
+app.filter('titlecase', function() {
+  return function(str) {
+    return (str == undefined || str === null) ? '' : str.replace(/_|-/, ' ').replace(/\w\S*/g, function(txt){
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+  }
+});;
 
 app.service('email', [function() {
 
@@ -66,6 +73,8 @@ app.controller('InboxCtrl', [
   '$stateParams',
   'isLoggedIn',
   function(GApi, $scope, growl, $stateParams, isLoggedIn) {
+
+  $scope.title = $stateParams.id;
 
   var query = 'in:' + $stateParams.id;
   GApi.executeAuth('gmail', 'users.threads.list', {

@@ -1,4 +1,4 @@
-<h1>Inbox</h1>
+<h1>{{::title | titlecase}}</h1>
 <ul class="list-unstyled">
   <li ng-repeat="thread in threads">
     <a ui-sref="thread({threadId: thread.id})">
