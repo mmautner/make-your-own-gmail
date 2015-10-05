@@ -1,6 +1,9 @@
+body {
+  margin-bottom: 20px;
+}
 .nav > li > a {
   padding: 0 15px;
 }
 .label {
-  margin-right: 2px;
+  margin-right: 3px;
 }

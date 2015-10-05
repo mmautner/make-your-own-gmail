@@ -4,8 +4,26 @@ var app = angular.module('scriptermail', [
   'angularMoment',
   'angular-growl',
   'ngAnimate',
-  'forceng'
+  'forceng',
+  'ngCkeditor'
 ]);
+
+
+app.service('email', [function() {
+
+  // http://stackoverflow.com/a/28622096/468653
+  var b64encode = function (msg) {
+    return btoa(msg).replace(/\//g, '_').replace(/\+/g, '-')
+  };
+  var b64decode = function(msg) {
+    return atob(msg.replace(/-/g, '+').replace(/_/g, '/'))
+  };
+
+  return {
+    b64encode: b64encode,
+    b64decode: b64decode
+  }
+}]);
 
 app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
   function($scope, GAuth, $state, growl) {
@@ -14,7 +32,7 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
     GAuth.login().then(function(){
       $state.go('label', {id: "INBOX"});
     }, function() {
-      growl.error('login fail');
+      growl.error('Login failed');
     });
   };
 
@@ -22,8 +40,6 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
 
 app.controller('InboxCtrl', ['GApi', '$scope', '$rootScope', 'growl', '$stateParams', 'isLoggedIn',
   function(GApi, $scope, $rootScope, growl, $stateParams, isLoggedIn) {
-
-  console.log('InboxCtrl');
 
   var query = 'in:' + $stateParams.id;
   GApi.executeAuth('gmail', 'users.threads.list', {
@@ -37,19 +53,47 @@ app.controller('InboxCtrl', ['GApi', '$scope', '$rootScope', 'growl', '$statePar
 
 }]);
 
-app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl',
-  function(GApi, $scope, $rootScope, $stateParams, growl) {
+app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl', 'email',
+  function(GApi, $scope, $rootScope, $stateParams, growl, email) {
 
   GApi.executeAuth('gmail', 'users.threads.get', {
     'userId': $rootScope.gapi.user.email,
     'id': $stateParams.threadId
   }).then(function(data) {
     $scope.messages = data.messages;
-    //decode payload: http://stackoverflow.com/a/28622096/468653
-    //atob(s.replace(/-/g, '+').replace(/_/g, '/'))
+    //email.b64decode(msg);
   }, function(error) {
     growl.error(error);
   });
+
+  $scope.editorOptions = {
+  };
+
+  // saving/sending
+  $scope.save = function() {
+    console.log('saving');
+  };
+
+  $scope.send = function() {
+    var payload = "From: " + $rootScope.gapi.user.email + 
+        '\r\n' + "To: max.mautner@gmail.com\r\n" +
+        '\r\n' + $scope.emailBody;
+    var base64encodedEmail = email.b64encode(payload);
+
+    console.log(payload);
+
+    GApi.executeAuth('gmail', 'users.messages.send', {
+      'userId': $rootScope.gapi.user.email,
+      'resource': {
+        'raw': base64encodedEmail
+      }
+    }).then(function(data) {
+      console.log(data);
+      growl.success('Email sent!');
+    }, function(error) {
+      growl.error(error);
+    });
+  };
 }]);
 
 app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
@@ -132,9 +176,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
 
   $stateProvider.state('secureRoot', {
     templateUrl: 'views/base.html',
-    controller: ['isLoggedIn', function(isLoggedIn) {
-      console.log('isLoggedIn controller');
-    }],
+    controller: ['isLoggedIn', function(isLoggedIn) {}],
     resolve: {
       isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
         return GAuth.checkAuth()
@@ -154,7 +196,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
   });
   $stateProvider.state('thread', {
     parent: 'secureRoot',
-    url: '/label/:id/thread/:threadId',
+    url: '/thread/:threadId',
     controller: 'ThreadCtrl',
     templateUrl: 'views/thread.html'
   });
@@ -175,10 +217,11 @@ app.run(['GApi', 'GAuth', 'GoogleClientId', 'GoogleScopes',
       ]);
 
 app.run([
+  '$rootScope',
   'force',
   'SFDCAppId',
   'SFDCCallbackUrl',
-  function(force, SFDCAppId, SFDCCallbackUrl) {
+  function($rootScope, force, SFDCAppId, SFDCCallbackUrl) {
 
   force.init({
     appId: SFDCAppId,
@@ -188,5 +231,14 @@ app.run([
     proxyURL: 'http://localhost:8200'
   });
 
+  $rootScope.$on('$stateChangeStart', function() {
+    $rootScope.stateLoaded = false;
+  });
+  $rootScope.$on('$stateChangeSuccess', function() {
+    $rootScope.stateLoaded = true;
+  });
+  $rootScope.$on('$stateChangeError', function() {
+    $rootScope.stateLoaded = true;
+  });
 }]);
 

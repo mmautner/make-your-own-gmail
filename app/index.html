@@ -4,13 +4,19 @@
   <script src="/__/env.js"></script>
   <link href="bower/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
   <link href="bower/angular-growl-v2/build/angular-growl.css" rel="stylesheet">
+  <link href="bower/ng-ckeditor/ng-ckeditor.css" rel="stylesheet">
   <link href="css/main.css" rel="stylesheet">
 </head>
 <body>
 
   <div class="container">
-    <div growl></div>
-    <div ui-view></div>
+    <div ng-show="stateLoaded">
+      <div growl></div>
+      <div ui-view></div>
+    </div>
+    <div ng-show="!stateLoaded">
+      Loading
+    </div>
   </div>
 
   <script src="bower/angular/angular.js"></script>
@@ -20,6 +26,8 @@
   <script src="bower/moment/min/moment.min.js"></script>
   <script src="bower/angular-moment/angular-moment.min.js"></script>
   <script src="bower/angular-growl-v2/build/angular-growl.js"></script>
+  <script src="bower/ng-ckeditor/libs/ckeditor/ckeditor.js"></script>
+  <script src="bower/ng-ckeditor/ng-ckeditor.js"></script>
   <script src="bower/forceng/forceng.js"></script>
   <script src="js/app.js"></script>
 </body>

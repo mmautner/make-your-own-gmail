@@ -11,3 +11,15 @@
     {{message.snippet}}
   </li>
 </ul>
+<ul class="nav nav-tabs">
+  <li ng-model="sendType" class="active"><a href="">Reply</a></li>
+  <li ng-model="sendType"><a href="">Reply-All</a></li>
+  <li ng-model="sendType"><a href="">Forward</a></li>
+</ul>
+<form method="post">
+  <textarea ckeditor="editorOptions" ng-model="emailBody"></textarea>
+</form>
+<div class="btn-group">
+  <button class="btn btn-default" ng-click="save()">Save</button>
+  <button class="btn btn-default" ng-click="send()">Send</button>
+</div>
