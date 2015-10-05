@@ -1,4 +1,20 @@
 <div class="row">
-  <h1>Hello</h1>
-  <button class="btn btn-primary btn-lg" ng-click="doSignup()">Auth</button>
+  <div class="col-sm-2">
+    <h3>Labels</h3>
+    <ul class="nav nav-pills nav-stacked">
+      <li gmail-label name="INBOX" ui-sref-active="active"></li>
+      <li gmail-label name="IMPORTANT" ui-sref-active="active"></li>
+      <li gmail-label name="STARRED" ui-sref-active="active"></li>
+      <li gmail-label name="UNREAD" ui-sref-active="active"></li>
+      <li gmail-label name="DRAFT" ui-sref-active="active"></li>
+      <li gmail-label name="SENT" ui-sref-active="active"></li>
+      <li gmail-label name="TRASH" ui-sref-active="active"></li>
+      <li gmail-label name="CHAT" ui-sref-active="active"></li>
+      <li gmail-label name="SPAM" ui-sref-active="active"></li>
+      <li ui-sref-active="active"><a ui-sref="leads">LEADS</a></li>
+    </ul>
+  </div>
+  <div class="col-sm-10">
+    <div ui-view></div>
+  </div>
 </div>

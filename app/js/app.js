@@ -3,7 +3,8 @@ var app = angular.module('scriptermail', [
   'angular-google-gapi',
   'angularMoment',
   'angular-growl',
-  'ngAnimate'
+  'ngAnimate',
+  'forceng'
 ]);
 
 app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
@@ -18,6 +19,54 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
   };
 
 }]);
+
+app.controller('InboxCtrl', ['GApi', '$scope', '$rootScope', 'growl', '$stateParams', 'isLoggedIn',
+  function(GApi, $scope, $rootScope, growl, $stateParams, isLoggedIn) {
+
+  console.log('InboxCtrl');
+
+  var query = 'in:' + $stateParams.id;
+  GApi.executeAuth('gmail', 'users.threads.list', {
+    'userId': $rootScope.gapi.user.email,
+    'q': query
+  }).then(function(data) {
+    $scope.threads = data.threads;
+  }, function(error) {
+    growl.error(error);
+  });
+
+}]);
+
+app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl',
+  function(GApi, $scope, $rootScope, $stateParams, growl) {
+
+  GApi.executeAuth('gmail', 'users.threads.get', {
+    'userId': $rootScope.gapi.user.email,
+    'id': $stateParams.threadId
+  }).then(function(data) {
+    $scope.messages = data.messages;
+    //decode payload: http://stackoverflow.com/a/28622096/468653
+    //atob(s.replace(/-/g, '+').replace(/_/g, '/'))
+  }, function(error) {
+    growl.error(error);
+  });
+}]);
+
+app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
+  function($scope, force, growl) {
+  $scope.loginSFDC = function() {
+    force.login()
+    .then(function () {
+      growl.info('Succesfully authed');
+      force.query('select id, name, email from contact limit 50')
+      .then(function (contacts) {
+        $scope.contacts = contacts.records;
+      });
+    });
+  };
+
+}]);
+
 
 app.directive('gmailLabel', ['GApi', '$rootScope',
   function(GApi, $rootScope) {
@@ -34,70 +83,11 @@ app.directive('gmailLabel', ['GApi', '$rootScope',
           'id': attrs.name,
           'fields': 'id,name,threadsTotal,threadsUnread,type'
         }).then(function(data) {
-          scope.label = data;
+          scope.activeLabel = data;
         });
       });
     }
   };
-}]);
-
-app.controller('InboxCtrl', ['GApi', '$scope', '$rootScope', 'growl', '$stateParams',
-  function(GApi, $scope, $rootScope, growl, $stateParams) {
-
-  GApi.executeAuth('gmail', 'users.labels.list', {
-    'userId': $rootScope.gapi.user.email
-  }).then(function(data) {
-
-    var interestingLabels = [
-      'INBOX',
-      'IMPORTANT',
-      'STARRED',
-      'UNREAD',
-      'DRAFT',
-      'SENT',
-      'TRASH',
-      'CHAT',
-      'SPAM'
-    ];
-    $scope.labels = [];//data.labels;
-    var newLabels;
-    for (var i = 0; i < interestingLabels.length; i++) {
-      GApi.executeAuth('gmail', 'users.labels.get', {
-        'userId': $rootScope.gapi.user.email,
-        'id': interestingLabels[i],
-        'fields': 'id,name,threadsTotal,threadsUnread,type'
-      }).then(function(data) {
-        $scope.labels.push(data);
-      });
-    }
-
-  });
-
-  var query = 'in:' + $stateParams.id;
-  GApi.executeAuth('gmail', 'users.threads.list', {
-    'userId': $rootScope.gapi.user.email,
-    'q': query
-  }).then(function(data) {
-    $scope.threads = data.threads;
-  }, function(error) {
-    growl.error(error);
-  });
-}]);
-
-app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl',
-  function(GApi, $scope, $rootScope, $stateParams, growl) {
-
-  GApi.executeAuth('gmail', 'users.threads.get', {
-    'userId': $rootScope.gapi.user.email,
-    'id': $stateParams.id
-  }).then(function(data) {
-    console.log(data.messages[0]);
-    $scope.messages = data.messages;
-    //decode payload: http://stackoverflow.com/a/28622096/468653
-    //atob(s.replace(/-/g, '+').replace(/_/g, '/'))
-  }, function(error) {
-    growl.error(error);
-  });
 }]);
 
 
@@ -107,6 +97,8 @@ app.filter('num', function() {
   };
 });
 
+app.constant('SFDCAppId', __env.SFDC_APP_ID);
+app.constant('SFDCCallbackUrl', __env.SFDC_CALLBACK_URL);
 app.constant('GoogleClientId', __env.GOOGLE_CLIENT_ID);
 app.constant('GoogleScopes', [
   'https://mail.google.com/',
@@ -121,40 +113,80 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
   function($stateProvider, $urlRouterProvider, $locationProvider) {
 
   $locationProvider.html5Mode(true);
-
   $urlRouterProvider.otherwise("/");
 
   $stateProvider.state('home', {
     url: '/',
     controller: 'MainCtrl',
-    templateUrl: 'views/base.html'
+    templateUrl: 'views/home.html',
+    resolve: {
+      isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
+        return GAuth.checkAuth().then(function () {
+          $state.go('label', {id: "INBOX"});
+        }, function() {
+          return;
+        });
+      }]
+    }
+  });
+
+  $stateProvider.state('secureRoot', {
+    templateUrl: 'views/base.html',
+    controller: ['isLoggedIn', function(isLoggedIn) {
+      console.log('isLoggedIn controller');
+    }],
+    resolve: {
+      isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
+        return GAuth.checkAuth()
+        .then(function () {
+          return;
+        }, function() {
+          $state.go('home');
+        });
+      }]
+    }
   });
   $stateProvider.state('label', {
+    parent: 'secureRoot',
     url: '/label/:id',
     controller: 'InboxCtrl',
     templateUrl: 'views/inbox.html'
   });
-  $stateProvider.state('label.thread', {
-    url: '/thread/:id',
+  $stateProvider.state('thread', {
+    parent: 'secureRoot',
+    url: '/label/:id/thread/:threadId',
     controller: 'ThreadCtrl',
     templateUrl: 'views/thread.html'
   });
+  $stateProvider.state('leads', {
+    parent: 'secureRoot',
+    url: '/leads',
+    controller: 'LeadsCtrl',
+    templateUrl: 'views/leads.html'
+  });
 }]);
 
-app.run(['GApi', 'GAuth', 'GoogleClientId', 'GoogleScopes', '$state',
-  function(GApi, GAuth, GoogleClientId, GoogleScopes, $state) {
+app.run(['GApi', 'GAuth', 'GoogleClientId', 'GoogleScopes',
+        function(GApi, GAuth, GoogleClientId, GoogleScopes) {
+          GApi.load('gmail', 'v1');
+          GAuth.setClient(GoogleClientId);
+          GAuth.setScope(GoogleScopes.join(' '));
+        }
+      ]);
 
-  GApi.load('gmail', 'v1');
+app.run([
+  'force',
+  'SFDCAppId',
+  'SFDCCallbackUrl',
+  function(force, SFDCAppId, SFDCCallbackUrl) {
 
-  GAuth.setClient(GoogleClientId);
-  GAuth.setScope(GoogleScopes.join(' '));
-
-  GAuth.checkAuth().then(
-  function () {
-    $state.go('label', {id: "INBOX"});
-  },
-  function() {
-    $state.go('home');
+  force.init({
+    appId: SFDCAppId,
+    apiVersion: 'v33.0',
+    loginURL: 'https://login.salesforce.com',
+    oauthCallbackURL: SFDCCallbackUrl,
+    proxyURL: 'http://localhost:8200'
   });
+
 }]);
 
