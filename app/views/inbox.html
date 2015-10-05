@@ -1,6 +1,8 @@
 <h1>Inbox</h1>
 <ul class="list-unstyled">
   <li ng-repeat="thread in threads">
-    <a ui-sref="thread({threadId: thread.id})">{{thread.snippet}}</a>
+    <a ui-sref="thread({threadId: thread.id})">
+      <span ng-bind-html="thread.snippet | html"></span>
+    </a>
   </li>
 </ul>

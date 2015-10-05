@@ -8,7 +8,7 @@
       class="label label-default">
       {{label}}
     </span>
-    {{message.snippet}}
+    <span ng-bind-html="message.snippet | html"></span>
   </li>
 </ul>
 <ul class="nav nav-tabs">

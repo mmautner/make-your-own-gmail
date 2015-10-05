@@ -9,6 +9,12 @@ var app = angular.module('scriptermail', [
 ]);
 
 
+app.filter('html', ['$sce', function ($sce) {
+  return function (text) {
+    return $sce.trustAsHtml(text);
+  };
+}]);
+
 app.service('email', [function() {
 
   // http://stackoverflow.com/a/28622096/468653
@@ -19,9 +25,24 @@ app.service('email', [function() {
     return atob(msg.replace(/-/g, '+').replace(/_/g, '/'))
   };
 
+  var rfc2822 = function(fromaddr, toaddrs, ccaddrs, bccaddrs, subject, body) {
+    /*
+    * fromaddr: {'name': 'xxx', 'email': 'xxx'}
+    * toaddrs/ccaddrs/bccaddrs: [{'name': 'xxx', 'email': 'xxx'}, ...]
+    * subject: 'normal string'  (limited to 76 chars)
+    * body: 'html string'
+    */
+    var payload = "From: " + fromaddr.email +
+        '\r\n' + "To: " + toaddrs[0].email +
+        '\r\n' + "Subject: " + subject +
+        '\r\n\r\n' + body;
+    return b64encode(payload);
+  };
+
   return {
     b64encode: b64encode,
-    b64decode: b64decode
+    b64decode: b64decode,
+    rfc2822: rfc2822
   }
 }]);
 
@@ -38,52 +59,72 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
 
 }]);
 
-app.controller('InboxCtrl', ['GApi', '$scope', '$rootScope', 'growl', '$stateParams', 'isLoggedIn',
-  function(GApi, $scope, $rootScope, growl, $stateParams, isLoggedIn) {
+app.controller('InboxCtrl', [
+  'GApi',
+  '$scope',
+  'growl',
+  '$stateParams',
+  'isLoggedIn',
+  function(GApi, $scope, growl, $stateParams, isLoggedIn) {
 
   var query = 'in:' + $stateParams.id;
   GApi.executeAuth('gmail', 'users.threads.list', {
-    'userId': $rootScope.gapi.user.email,
+    'userId': 'me',
     'q': query
   }).then(function(data) {
     $scope.threads = data.threads;
+    // more verbose, recursive fetching of thread data--*needs* caching
+    // http://www.metaltoad.com/blog/angularjs-vs-browser-http-cache
+    // https://github.com/jmdobry/angular-cache
+    // https://www.ng-book.com/p/Caching/
+    /* 
+    var batch = $window.gapi.client.newBatch()
+    for (var i = 0; i < data.threads.length; i++) {
+      batch.add(Gapi.executeAuth('gmail', 'users.threads.get', {
+        'userId': 'me',
+        'id': data.threads[i].id
+      });
+    }
+    batch.then(function(data) {
+      $scope.threads = data;
+    });
+    */
   }, function(error) {
     growl.error(error);
   });
 
 }]);
 
+var msg;
 app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl', 'email',
   function(GApi, $scope, $rootScope, $stateParams, growl, email) {
 
   GApi.executeAuth('gmail', 'users.threads.get', {
-    'userId': $rootScope.gapi.user.email,
-    'id': $stateParams.threadId
+    'userId': 'me',
+    'id': $stateParams.threadId,
+    'format': 'full' // more expensive?
   }).then(function(data) {
+    // requires parsing of messages
     $scope.messages = data.messages;
-    //email.b64decode(msg);
   }, function(error) {
     growl.error(error);
   });
 
-  $scope.editorOptions = {
-  };
-
-  // saving/sending
   $scope.save = function() {
     console.log('saving');
   };
 
   $scope.send = function() {
-    var payload = "From: " + $rootScope.gapi.user.email + 
-        '\r\n' + "To: max.mautner@gmail.com\r\n" +
-        '\r\n' + $scope.emailBody;
-    var base64encodedEmail = email.b64encode(payload);
-
-    console.log(payload);
+    base64encodedEmail = email.rfc2822(
+      {'email': $rootScope.gapi.user.email},
+      [{'email': 'max.mautner@gmail.com'}],
+      [],
+      [],
+      'Hi',
+      $scope.emailBody);
 
     GApi.executeAuth('gmail', 'users.messages.send', {
-      'userId': $rootScope.gapi.user.email,
+      'userId': 'me',
       'resource': {
         'raw': base64encodedEmail
       }
@@ -94,6 +135,11 @@ app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'g
       growl.error(error);
     });
   };
+
+  $scope.editorOptions = {
+    height: 200
+  };
+
 }]);
 
 app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
@@ -112,8 +158,8 @@ app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
 }]);
 
 
-app.directive('gmailLabel', ['GApi', '$rootScope',
-  function(GApi, $rootScope) {
+app.directive('gmailLabel', ['GApi',
+  function(GApi) {
   return {
     restrict: 'A',
     templateUrl: 'views/labels.html',
@@ -123,7 +169,7 @@ app.directive('gmailLabel', ['GApi', '$rootScope',
     link: function(scope, element, attrs) {
       attrs.$observe('name', function(value) {
         GApi.executeAuth('gmail', 'users.labels.get', {
-          'userId': $rootScope.gapi.user.email,
+          'userId': 'me',
           'id': attrs.name,
           'fields': 'id,name,threadsTotal,threadsUnread,type'
         }).then(function(data) {
