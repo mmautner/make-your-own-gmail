@@ -1,5 +1,5 @@
 {
-  "name": "scriptermail-ui",
+  "name": "scriptermail",
   "root": "app",
   "error_page": "error.html",
   "routes": [

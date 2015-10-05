@@ -1,0 +1,27 @@
+machine:
+  node:
+    version: 0.12.0
+
+dependencies:
+  pre:
+    - npm install
+    - bower install -f
+
+test:
+  override:
+    - >
+      echo 'No tests.'
+
+deployment:
+  staging:
+    branch: staging
+    commands:
+      - gulp
+      - npm install -g divshot-cli
+      - divshot push staging --token $DIVSHOT_TOKEN
+  production:
+    branch: master
+    commands:
+      - gulp
+      - npm install -g divshot-cli
+      - divshot push production --token $DIVSHOT_TOKEN
