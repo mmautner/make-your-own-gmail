@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "angular": "~1.4.6",
-    "angular-google-gapi": "~0.1.3",
+    "angular-google-gapi": "git@github.com:mmautner/angular-google-gapi.git#add-createRequest",
     "bootstrap": "~3.3.5",
     "angular-ui-router": "~0.2.15",
     "moment": "~2.10.6",
@@ -24,7 +24,8 @@
     "angular-animate": "~1.4.6",
     "forceng": "https://github.com/ccoenraets/forceng.git#master",
     "ng-ckeditor": "~0.2.1",
-    "font-awesome": "~4.4.0"
+    "font-awesome": "~4.4.0",
+    "angular-cache": "~4.3.2"
   },
   "resolutions": {
     "angular": "~1.4.6"
