@@ -20,7 +20,7 @@ app.filter('titlecase', function() {
       return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
   }
-});;
+});
 
 app.service('email', [function() {
 
@@ -66,41 +66,88 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
 
 }]);
 
-app.controller('InboxCtrl', [
-  'GApi',
+app.service('FetchLabels', ['$window', 'GApi', 'InterestingLabels',
+  function($window, GApi, InterestingLabels) {
+    return function() {
+
+      var batch = $window.gapi.client.newBatch()
+      for (var i = 0; i < InterestingLabels.length; i++) {
+        var req = GApi.createRequest(
+          'gmail',
+          'users.labels.get',
+          {
+            'userId': 'me',
+            'id': InterestingLabels[i].name,
+            'fields': 'id,name,threadsTotal,threadsUnread,type'
+          }
+        );
+        batch.add(req, {id: InterestingLabels[i].name});
+      }
+      return batch.then(function(data) {
+        return data.result;
+      });
+    };
+  }
+]);
+
+app.service('FetchMessages', ['$window', 'GApi', 'InterestingLabels',
+  function($window, GApi, InterestingLabels) {
+    // *NEEDS* caching
+    return function(label) {
+      var query = 'in:' + label;
+      return GApi.executeAuth('gmail', 'users.threads.list', {
+        'userId': 'me',
+        'q': query
+      })
+      .then(function(threadResult) {
+
+        var batch = $window.gapi.client.newBatch()
+        for (var i = 0; i < threadResult.threads.length; i++) {
+          var req = GApi.createRequest(
+            'gmail',
+            'users.threads.get', {
+              'userId': 'me',
+              'id': threadResult.threads[i].id
+            }
+          );
+          batch.add(req, {id: threadResult.threads[i].id});
+        }
+
+        return batch
+        .then(function(msgResult) {
+          for (var i = 0; i < threadResult.threads.length; i++) {
+            var threadId = threadResult.threads[i].id;
+            threadResult.threads[i].messages = msgResult.result[threadId].result.messages;
+          }
+          return threadResult.threads;
+        });
+      });
+
+    };
+  }
+]);
+
+
+app.controller('BaseCtrl', [
   '$scope',
-  'growl',
+  'InterestingLabels',
+  'labels',
+  function($scope, InterestingLabels, labels) {
+
+  $scope.labels = labels;
+  $scope.interestingLabels = InterestingLabels;
+    
+  }
+]);
+
+app.controller('InboxCtrl', [
+  '$scope',
   '$stateParams',
-  'isLoggedIn',
-  function(GApi, $scope, growl, $stateParams, isLoggedIn) {
+  'threads',
+  function($scope, $stateParams, threads) {
 
   $scope.title = $stateParams.id;
-
-  var query = 'in:' + $stateParams.id;
-  GApi.executeAuth('gmail', 'users.threads.list', {
-    'userId': 'me',
-    'q': query
-  }).then(function(data) {
-    $scope.threads = data.threads;
-    // more verbose, recursive fetching of thread data--*needs* caching
-    // http://www.metaltoad.com/blog/angularjs-vs-browser-http-cache
-    // https://github.com/jmdobry/angular-cache
-    // https://www.ng-book.com/p/Caching/
-    /* 
-    var batch = $window.gapi.client.newBatch()
-    for (var i = 0; i < data.threads.length; i++) {
-      batch.add(Gapi.executeAuth('gmail', 'users.threads.get', {
-        'userId': 'me',
-        'id': data.threads[i].id
-      });
-    }
-    batch.then(function(data) {
-      $scope.threads = data;
-    });
-    */
-  }, function(error) {
-    growl.error(error);
-  });
+  $scope.threads = threads;
 
 }]);
 
@@ -167,28 +214,6 @@ app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
 }]);
 
 
-app.directive('gmailLabel', ['GApi',
-  function(GApi) {
-  return {
-    restrict: 'A',
-    templateUrl: 'views/labels.html',
-    scope: {
-      name: '@'
-    },
-    link: function(scope, element, attrs) {
-      attrs.$observe('name', function(value) {
-        GApi.executeAuth('gmail', 'users.labels.get', {
-          'userId': 'me',
-          'id': attrs.name,
-          'fields': 'id,name,threadsTotal,threadsUnread,type'
-        }).then(function(data) {
-          scope.activeLabel = data;
-        });
-      });
-    }
-  };
-}]);
-
 
 app.filter('num', function() {
   return function(input) {
@@ -202,6 +227,17 @@ app.constant('GoogleClientId', __env.GOOGLE_CLIENT_ID);
 app.constant('GoogleScopes', [
   'https://mail.google.com/',
   'https://www.googleapis.com/auth/userinfo.email'
+]);
+app.constant('InterestingLabels', [
+  {name: 'INBOX', icon: 'envelope'},
+  //{name: 'IMPORTANT', icon: ''},
+  {name: 'STARRED', icon: 'star'},
+  //{name: 'UNREAD', icon: ''},
+  {name: 'DRAFT', icon: 'pencil'},
+  {name: 'SENT', icon: 'send'},
+  {name: 'TRASH', icon: 'trash'},
+  {name: 'CHAT', icon: 'comment'},
+  {name: 'SPAM', icon: 'ban'}
 ]);
 
 app.config(['growlProvider', function(growlProvider) {
@@ -231,7 +267,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
 
   $stateProvider.state('secureRoot', {
     templateUrl: 'views/base.html',
-    controller: ['isLoggedIn', function(isLoggedIn) {}],
+    controller: 'BaseCtrl',
     resolve: {
       isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
         return GAuth.checkAuth()
@@ -240,6 +276,9 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
         }, function() {
           $state.go('home');
         });
+      }],
+      labels: ['isLoggedIn', 'FetchLabels', function(isLoggedIn, FetchLabels) {
+        return FetchLabels();
       }]
     }
   });
@@ -247,7 +286,14 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     parent: 'secureRoot',
     url: '/label/:id',
     controller: 'InboxCtrl',
-    templateUrl: 'views/inbox.html'
+    templateUrl: 'views/inbox.html',
+    resolve: {
+      threads: ['FetchMessages', '$stateParams', 'isLoggedIn',
+        function(FetchMessages, $stateParams) {
+          return FetchMessages($stateParams.id);
+        }
+      ]
+    }
   });
   $stateProvider.state('thread', {
     parent: 'secureRoot',
@@ -286,13 +332,16 @@ app.run([
     proxyURL: 'http://localhost:8200'
   });
 
-  $rootScope.$on('$stateChangeStart', function() {
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams) {
+    //console.log(event, toState, toParams, fromState, fromParams);
     $rootScope.stateLoaded = false;
   });
-  $rootScope.$on('$stateChangeSuccess', function() {
+  $rootScope.$on('$stateChangeSuccess', function(event, toState, toParams, fromState, fromParams) {
+    //console.log(event, toState, toParams, fromState, fromParams);
     $rootScope.stateLoaded = true;
   });
-  $rootScope.$on('$stateChangeError', function() {
+  $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error) {
+    //console.log(event, toState, toParams, fromState, fromParams, error);
     $rootScope.stateLoaded = true;
   });
 }]);

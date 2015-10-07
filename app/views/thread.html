@@ -12,9 +12,15 @@
   </li>
 </ul>
 <ul class="nav nav-tabs">
-  <li ng-model="sendType" class="active"><a href="">Reply</a></li>
-  <li ng-model="sendType"><a href="">Reply-All</a></li>
-  <li ng-model="sendType"><a href="">Forward</a></li>
+  <li ng-model="sendType" class="active">
+    <a ui-sref=""><i class="fa fa-reply"></i> Reply</a>
+  </li>
+  <li ng-model="sendType">
+    <a ui-sref=""><i class="fa fa-reply-all"></i> Reply-All</a>
+  </li>
+  <li ng-model="sendType">
+    <a ui-sref=""><i class="fa fa-share"></i> Forward</a>
+  </li>
 </ul>
 <form method="post">
   <textarea ckeditor="editorOptions" ng-model="emailBody"></textarea>

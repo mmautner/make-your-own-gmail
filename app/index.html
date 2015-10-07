@@ -1,10 +1,18 @@
 <html ng-app="scriptermail">
 <head>
   <base href="/"></base>
+
+  <title>ScripterMail</title>
+  <!-- http://stackoverflow.com/questions/23813599/set-page-title-using-ui-router -->
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <link rel="shortcut icon" type="image/icon" href="/img/favicon.ico"/>
+
   <script src="/__/env.js"></script>
+
   <link href="bower/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+  <link href="bower/font-awesome/css/font-awesome.css" rel="stylesheet">
   <link href="bower/angular-growl-v2/build/angular-growl.css" rel="stylesheet">
   <link href="bower/ng-ckeditor/ng-ckeditor.css" rel="stylesheet">
   <link href="css/main.css" rel="stylesheet">
@@ -17,7 +25,10 @@
       <div ui-view></div>
     </div>
     <div ng-show="!stateLoaded">
-      Loading
+      <div class="row text-center">
+        <br>
+        <i class="fa fa-cog fa-spin fa-5x"></i>
+      </div>
     </div>
   </div>
 

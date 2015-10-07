@@ -1,8 +1,9 @@
 <h1>{{::title | titlecase}}</h1>
 <ul class="list-unstyled">
-  <li ng-repeat="thread in threads">
-    <a ui-sref="thread({threadId: thread.id})">
-      <span ng-bind-html="thread.snippet | html"></span>
+  <li ng-repeat="ithread in threads">
+    <a ui-sref="thread({threadId: ithread.id})">
+      ({{ithread.messages.length}})
+      <span ng-bind-html="ithread.snippet | html"></span>
     </a>
   </li>
 </ul>
