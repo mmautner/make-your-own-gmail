@@ -16,10 +16,12 @@ deployment:
   staging:
     branch: staging
     commands:
+      - grunt build
       - npm install -g divshot-cli
       - divshot push staging --token $DIVSHOT_TOKEN
   production:
     branch: master
     commands:
+      - grunt build
       - npm install -g divshot-cli
       - divshot push production --token $DIVSHOT_TOKEN
