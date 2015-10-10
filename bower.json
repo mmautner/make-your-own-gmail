@@ -25,7 +25,8 @@
     "ng-ckeditor": "~0.2.1",
     "font-awesome": "~4.4.0",
     "angular-cache": "~4.3.2",
-    "email-addresses": "~2.0.1"
+    "email-addresses": "~2.0.1",
+    "favico.js": "~0.3.9"
   },
   "resolutions": {
     "angular": "~1.4.6"
