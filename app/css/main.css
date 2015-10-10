@@ -1,9 +1,43 @@
 body {
   margin-bottom: 20px;
+  color: black;
+}
+a {
+  color: black;
+}
+a:hover {
+  font-weight: bold;
+}
+.container {
+  padding: 0 20px !important;
+  margin: 0 20px !important;
 }
 .nav > li > a {
   padding: 0 15px;
 }
 .label {
   margin-right: 3px;
+}
+.threads {
+  font-size: 1em;
+  border-bottom: 1px solid #E5E5E5;
+}
+.thread {
+  border-top: 1px solid #E5E5E5;
+  background-color: #F4F4F4;
+  padding: 2px 5px;
+}
+.col-thread {
+  -ms-text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  text-overflow: ellipsis;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.preview-text {
+  color: gray;
+}
+.bold {
+  font-weight: bold;
 }

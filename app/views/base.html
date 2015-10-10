@@ -5,18 +5,12 @@
       <li
         ng-repeat="ilabel in interestingLabels"
         ui-sref-active="active">
-        <a ui-sref="label({id: '{{ilabel.name}}'})">
+        <a ui-sref="label({id: '{{ilabel.name | lowercase}}'})">
           <i class="fa fa-fw fa-{{ilabel.icon}}"></i>
           {{::ilabel.name}}
           <span ng-show="labels[ilabel.name].result.threadsUnread">
             (<b>{{labels[ilabel.name].result.threadsUnread}}</b>)
           </span>
-        </a>
-      </li>
-      <li ui-sref-active="active">
-        <a ui-sref="leads">
-          <i class="fa fa-usd"></i>
-          LEADS
         </a>
       </li>
     </ul>

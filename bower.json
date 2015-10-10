@@ -22,10 +22,10 @@
     "async": "~1.4.2",
     "angular-growl-v2": "~0.7.5",
     "angular-animate": "~1.4.6",
-    "forceng": "https://github.com/ccoenraets/forceng.git#master",
     "ng-ckeditor": "~0.2.1",
     "font-awesome": "~4.4.0",
-    "angular-cache": "~4.3.2"
+    "angular-cache": "~4.3.2",
+    "email-addresses": "~2.0.1"
   },
   "resolutions": {
     "angular": "~1.4.6"

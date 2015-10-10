@@ -4,11 +4,14 @@ var app = angular.module('scriptermail', [
   'angularMoment',
   'angular-growl',
   'ngAnimate',
-  'forceng',
   'ngCkeditor'
 ]);
 
-
+app.filter('num', function() {
+  return function(input) {
+    return parseInt(input, 10);
+  };
+});
 app.filter('html', ['$sce', function ($sce) {
   return function (text) {
     return $sce.trustAsHtml(text);
@@ -21,8 +24,31 @@ app.filter('titlecase', function() {
     });
   }
 });
+app.filter('joinParticipants', function() {
+  return function(participants) {
+    //return participants.join(', ');
+    return participants[participants.length-1];
+  }
+});
 
-app.service('email', [function() {
+app.service('favico', [function() {
+  var favico = new Favico({
+    animation : 'fade'
+  });
+
+  var badge = function(num) {
+    favico.badge(num);
+  };
+  var reset = function() {
+    favico.reset();
+  };
+
+  return {
+    badge : badge,
+    reset : reset
+  };
+}]);
+app.service('email', ['$rootScope', function($rootScope) {
 
   // http://stackoverflow.com/a/28622096/468653
   var b64encode = function (msg) {
@@ -30,6 +56,65 @@ app.service('email', [function() {
   };
   var b64decode = function(msg) {
     return atob(msg.replace(/-/g, '+').replace(/_/g, '/'))
+  };
+
+  var convertHeadersToObject = function(headers) {
+    var d = {};
+    for (var i = 0; i < headers.length; i++) {
+      d[headers[i].name] = headers[i].value;
+    };
+    return d;
+  };
+
+  var getSubject = function(headers) {
+    var headers = convertHeadersToObject(headers);
+    if ('Subject' in headers) {
+      return headers['Subject'];
+    }
+  };
+
+  var getParticipants = function(msgs) {
+    var participants = [];
+    for (var i = 0; i < msgs.length; i++) {
+      var headers = convertHeadersToObject(msgs[i].payload.headers);
+      var interestingHeaders = ['From', 'To', 'Cc', 'Bcc'];
+      var myEmail = $rootScope.gapi.user.email;
+      for (var j = 0; j < interestingHeaders.length; j++) {
+        if (headers[interestingHeaders[j]]) {
+          var parsedAddr = emailAddresses.parseOneAddress(headers[interestingHeaders[j]]);
+          if (parsedAddr) {
+            if (parsedAddr.name) {
+              participants.push(parsedAddr.name);
+            }
+            else if (parsedAddr.address) {
+              participants.push(parsedAddr.address);
+            }
+          }
+        };
+      };
+    }
+    return participants;
+  };
+
+  var getUnread = function(thread) {
+    var unreadMsgs = [];
+    for (var i = 0; i < thread.messages.length; i++) {
+      if (thread.messages[i].labelIds.indexOf('UNREAD') > -1) {
+        unreadMsgs.push(thread.messages[i]);
+      }
+    };
+    return unreadMsgs;
+  };
+
+  var getDatetimes = function(thread) {
+    var datetimes = [];
+    for (var i = 0; i < thread.messages.length; i++) {
+      var headers = convertHeadersToObject(thread.messages[i].payload.headers);
+      if ('Date' in headers) {
+        datetimes.push(new Date(headers['Date']));
+      }
+    }
+    return datetimes
   };
 
   var rfc2822 = function(fromaddr, toaddrs, ccaddrs, bccaddrs, subject, body) {
@@ -49,6 +134,10 @@ app.service('email', [function() {
   return {
     b64encode: b64encode,
     b64decode: b64decode,
+    getSubject: getSubject,
+    getParticipants: getParticipants,
+    getUnread: getUnread,
+    getDatetimes: getDatetimes,
     rfc2822: rfc2822
   }
 }]);
@@ -58,7 +147,7 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
   
   $scope.doSignup = function() {
     GAuth.login().then(function(){
-      $state.go('label', {id: "INBOX"});
+      $state.go('label', {id: "inbox"});
     }, function() {
       growl.error('Login failed');
     });
@@ -90,8 +179,8 @@ app.service('FetchLabels', ['$window', 'GApi', 'InterestingLabels',
   }
 ]);
 
-app.service('FetchMessages', ['$window', 'GApi', 'InterestingLabels',
-  function($window, GApi, InterestingLabels) {
+app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels', 'favico',
+  function($window, GApi, email, InterestingLabels, favico) {
     // *NEEDS* caching
     return function(label) {
       var query = 'in:' + label;
@@ -115,10 +204,27 @@ app.service('FetchMessages', ['$window', 'GApi', 'InterestingLabels',
 
         return batch
         .then(function(msgResult) {
+          // post-processing of threads
+          var unreadThreads = 0;
           for (var i = 0; i < threadResult.threads.length; i++) {
             var threadId = threadResult.threads[i].id;
-            threadResult.threads[i].messages = msgResult.result[threadId].result.messages;
+            var thread = msgResult.result[threadId].result;
+            var participants = email.getParticipants(thread.messages);
+            var subject = email.getSubject(thread.messages[thread.messages.length-1].payload.headers);
+            var unreadMsgs = email.getUnread(thread);
+            var datetimes = email.getDatetimes(thread);
+
+            threadResult.threads[i].messages = thread.messages;
+            threadResult.threads[i].participants = participants;
+            threadResult.threads[i].subject = subject;
+            threadResult.threads[i].unreadMsgs = unreadMsgs;
+            threadResult.threads[i].datetimes = datetimes;
+
+            if (unreadMsgs.length > 0) { unreadThreads++; }
           }
+          // update favicon count
+          favico.badge(unreadThreads);
+
           return threadResult.threads;
         });
       });
@@ -146,7 +252,7 @@ app.controller('InboxCtrl', [
   'threads',
   function($scope, $stateParams, threads) {
 
-  $scope.title = $stateParams.id;
+  $scope.title = $stateParams.id.toUpperCase();
   $scope.threads = threads;
 
 }]);
@@ -157,7 +263,7 @@ app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'g
 
   GApi.executeAuth('gmail', 'users.threads.get', {
     'userId': 'me',
-    'id': $stateParams.threadId,
+    'id': $stateParams.threadId.toUpperCase(),
     'format': 'full' // more expensive?
   }).then(function(data) {
     // requires parsing of messages
@@ -198,31 +304,7 @@ app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'g
 
 }]);
 
-app.controller('LeadsCtrl', ['$scope', 'force', 'growl',
-  function($scope, force, growl) {
-  $scope.loginSFDC = function() {
-    force.login()
-    .then(function () {
-      growl.info('Succesfully authed');
-      force.query('select id, name, email from contact limit 50')
-      .then(function (contacts) {
-        $scope.contacts = contacts.records;
-      });
-    });
-  };
 
-}]);
-
-
-
-app.filter('num', function() {
-  return function(input) {
-    return parseInt(input, 10);
-  };
-});
-
-app.constant('SFDCAppId', __env.SFDC_APP_ID);
-app.constant('SFDCCallbackUrl', __env.SFDC_CALLBACK_URL);
 app.constant('GoogleClientId', __env.GOOGLE_CLIENT_ID);
 app.constant('GoogleScopes', [
   'https://mail.google.com/',
@@ -257,7 +339,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     resolve: {
       isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
         return GAuth.checkAuth().then(function () {
-          $state.go('label', {id: "INBOX"});
+          $state.go('label', {id: "inbox"});
         }, function() {
           return;
         });
@@ -290,7 +372,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     resolve: {
       threads: ['FetchMessages', '$stateParams', 'isLoggedIn',
         function(FetchMessages, $stateParams) {
-          return FetchMessages($stateParams.id);
+          return FetchMessages($stateParams.id.toUpperCase());
         }
       ]
     }
@@ -300,12 +382,6 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     url: '/thread/:threadId',
     controller: 'ThreadCtrl',
     templateUrl: 'views/thread.html'
-  });
-  $stateProvider.state('leads', {
-    parent: 'secureRoot',
-    url: '/leads',
-    controller: 'LeadsCtrl',
-    templateUrl: 'views/leads.html'
   });
 }]);
 
@@ -319,18 +395,7 @@ app.run(['GApi', 'GAuth', 'GoogleClientId', 'GoogleScopes',
 
 app.run([
   '$rootScope',
-  'force',
-  'SFDCAppId',
-  'SFDCCallbackUrl',
-  function($rootScope, force, SFDCAppId, SFDCCallbackUrl) {
-
-  force.init({
-    appId: SFDCAppId,
-    apiVersion: 'v33.0',
-    loginURL: 'https://login.salesforce.com',
-    oauthCallbackURL: SFDCCallbackUrl,
-    proxyURL: 'http://localhost:8200'
-  });
+  function($rootScope) {
 
   $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams) {
     //console.log(event, toState, toParams, fromState, fromParams);
@@ -341,7 +406,7 @@ app.run([
     $rootScope.stateLoaded = true;
   });
   $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error) {
-    //console.log(event, toState, toParams, fromState, fromParams, error);
+    console.log(event, toState, toParams, fromState, fromParams, error);
     $rootScope.stateLoaded = true;
   });
 }]);
