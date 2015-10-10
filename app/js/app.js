@@ -179,8 +179,8 @@ app.service('FetchLabels', ['$window', 'GApi', 'InterestingLabels',
   }
 ]);
 
-app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels',
-  function($window, GApi, email, InterestingLabels) {
+app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels', 'favico',
+  function($window, GApi, email, InterestingLabels, favico) {
     // *NEEDS* caching
     return function(label) {
       var query = 'in:' + label;
@@ -205,6 +205,7 @@ app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels',
         return batch
         .then(function(msgResult) {
           // post-processing of threads
+          var unreadThreads = 0;
           for (var i = 0; i < threadResult.threads.length; i++) {
             var threadId = threadResult.threads[i].id;
             var thread = msgResult.result[threadId].result;
@@ -218,7 +219,12 @@ app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels',
             threadResult.threads[i].subject = subject;
             threadResult.threads[i].unreadMsgs = unreadMsgs;
             threadResult.threads[i].datetimes = datetimes;
+
+            if (unreadMsgs.length > 0) { unreadThreads++; }
           }
+          // update favicon count
+          favico.badge(unreadThreads);
+
           return threadResult.threads;
         });
       });
