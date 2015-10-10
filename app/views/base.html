@@ -5,7 +5,7 @@
       <li
         ng-repeat="ilabel in interestingLabels"
         ui-sref-active="active">
-        <a ui-sref="label({id: '{{ilabel.name}}'})">
+        <a ui-sref="label({id: '{{ilabel.name | lowercase}}'})">
           <i class="fa fa-fw fa-{{ilabel.icon}}"></i>
           {{::ilabel.name}}
           <span ng-show="labels[ilabel.name].result.threadsUnread">

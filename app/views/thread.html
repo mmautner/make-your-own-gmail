@@ -13,13 +13,13 @@
 </ul>
 <ul class="nav nav-tabs">
   <li ng-model="sendType" class="active">
-    <a ui-sref=""><i class="fa fa-reply"></i> Reply</a>
+    <a ng-click="reply()"><i class="fa fa-reply"></i> Reply</a>
   </li>
   <li ng-model="sendType">
-    <a ui-sref=""><i class="fa fa-reply-all"></i> Reply-All</a>
+    <a ng-click="replyAll()"><i class="fa fa-reply-all"></i> Reply-All</a>
   </li>
   <li ng-model="sendType">
-    <a ui-sref=""><i class="fa fa-share"></i> Forward</a>
+    <a ng-click="forward()"><i class="fa fa-share"></i> Forward</a>
   </li>
 </ul>
 <form method="post">

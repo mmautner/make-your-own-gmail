@@ -6,9 +6,12 @@
         {{ ithread.participants | joinParticipants }}
         <span ng-if="ithread.messages.length > 1">({{ithread.messages.length}})</span>
       </div>
-      <div class="col-sm-9 col-thread">
+      <div class="col-sm-7 col-thread">
         <span ng-class="{ 'bold': ithread.unreadMsgs.length }">{{ithread.subject}}</span>
         <span class="preview-text" ng-bind-html="ithread.snippet | html"></span>
+      </div>
+      <div class="col-sm-2">
+        <span am-time-ago="ithread.datetimes[ithread.messages.length-1]"></span>
       </div>
     </a>
   </div>

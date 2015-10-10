@@ -76,7 +76,6 @@ app.service('email', ['$rootScope', function($rootScope) {
   var getParticipants = function(msgs) {
     var participants = [];
     for (var i = 0; i < msgs.length; i++) {
-      //console.log(msgs[i].payload.headers);
       var headers = convertHeadersToObject(msgs[i].payload.headers);
       var interestingHeaders = ['From', 'To', 'Cc', 'Bcc'];
       var myEmail = $rootScope.gapi.user.email;
@@ -100,12 +99,22 @@ app.service('email', ['$rootScope', function($rootScope) {
   var getUnread = function(thread) {
     var unreadMsgs = [];
     for (var i = 0; i < thread.messages.length; i++) {
-      console.log(thread.messages[i].labelIds);
       if (thread.messages[i].labelIds.indexOf('UNREAD') > -1) {
         unreadMsgs.push(thread.messages[i]);
       }
     };
     return unreadMsgs;
+  };
+
+  var getDatetimes = function(thread) {
+    var datetimes = [];
+    for (var i = 0; i < thread.messages.length; i++) {
+      var headers = convertHeadersToObject(thread.messages[i].payload.headers);
+      if ('Date' in headers) {
+        datetimes.push(new Date(headers['Date']));
+      }
+    }
+    return datetimes
   };
 
   var rfc2822 = function(fromaddr, toaddrs, ccaddrs, bccaddrs, subject, body) {
@@ -128,6 +137,7 @@ app.service('email', ['$rootScope', function($rootScope) {
     getSubject: getSubject,
     getParticipants: getParticipants,
     getUnread: getUnread,
+    getDatetimes: getDatetimes,
     rfc2822: rfc2822
   }
 }]);
@@ -137,7 +147,7 @@ app.controller('MainCtrl', ['$scope', 'GAuth', '$state', 'growl',
   
   $scope.doSignup = function() {
     GAuth.login().then(function(){
-      $state.go('label', {id: "INBOX"});
+      $state.go('label', {id: "inbox"});
     }, function() {
       growl.error('Login failed');
     });
@@ -201,11 +211,13 @@ app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels',
             var participants = email.getParticipants(thread.messages);
             var subject = email.getSubject(thread.messages[thread.messages.length-1].payload.headers);
             var unreadMsgs = email.getUnread(thread);
+            var datetimes = email.getDatetimes(thread);
 
             threadResult.threads[i].messages = thread.messages;
             threadResult.threads[i].participants = participants;
             threadResult.threads[i].subject = subject;
             threadResult.threads[i].unreadMsgs = unreadMsgs;
+            threadResult.threads[i].datetimes = datetimes;
           }
           return threadResult.threads;
         });
@@ -234,7 +246,7 @@ app.controller('InboxCtrl', [
   'threads',
   function($scope, $stateParams, threads) {
 
-  $scope.title = $stateParams.id;
+  $scope.title = $stateParams.id.toUpperCase();
   $scope.threads = threads;
 
 }]);
@@ -245,7 +257,7 @@ app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'g
 
   GApi.executeAuth('gmail', 'users.threads.get', {
     'userId': 'me',
-    'id': $stateParams.threadId,
+    'id': $stateParams.threadId.toUpperCase(),
     'format': 'full' // more expensive?
   }).then(function(data) {
     // requires parsing of messages
@@ -321,7 +333,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     resolve: {
       isLoggedIn: ['$state', 'GAuth', function($state, GAuth) {
         return GAuth.checkAuth().then(function () {
-          $state.go('label', {id: "INBOX"});
+          $state.go('label', {id: "inbox"});
         }, function() {
           return;
         });
@@ -354,7 +366,7 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
     resolve: {
       threads: ['FetchMessages', '$stateParams', 'isLoggedIn',
         function(FetchMessages, $stateParams) {
-          return FetchMessages($stateParams.id);
+          return FetchMessages($stateParams.id.toUpperCase());
         }
       ]
     }
