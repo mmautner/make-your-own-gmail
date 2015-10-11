@@ -246,7 +246,7 @@ app.controller('BaseCtrl', [
   }
 ]);
 
-app.controller('InboxCtrl', [
+app.controller('LabelCtrl', [
   '$scope',
   '$stateParams',
   'threads',
@@ -257,7 +257,6 @@ app.controller('InboxCtrl', [
 
 }]);
 
-var msg;
 app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'growl', 'email',
   function(GApi, $scope, $rootScope, $stateParams, growl, email) {
 
@@ -332,7 +331,8 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
   $locationProvider.html5Mode(true);
   $urlRouterProvider.otherwise("/");
 
-  $stateProvider.state('home', {
+  $stateProvider
+  .state('home', {
     url: '/',
     controller: 'MainCtrl',
     templateUrl: 'views/home.html',
@@ -345,9 +345,8 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
         });
       }]
     }
-  });
-
-  $stateProvider.state('secureRoot', {
+  })
+  .state('secureRoot', {
     templateUrl: 'views/base.html',
     controller: 'BaseCtrl',
     resolve: {
@@ -363,12 +362,12 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
         return FetchLabels();
       }]
     }
-  });
-  $stateProvider.state('label', {
+  })
+  .state('label', {
     parent: 'secureRoot',
     url: '/label/:id',
-    controller: 'InboxCtrl',
-    templateUrl: 'views/inbox.html',
+    controller: 'LabelCtrl',
+    templateUrl: 'views/label.html',
     resolve: {
       threads: ['FetchMessages', '$stateParams', 'isLoggedIn',
         function(FetchMessages, $stateParams) {
@@ -376,8 +375,8 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
         }
       ]
     }
-  });
-  $stateProvider.state('thread', {
+  })
+  .state('thread', {
     parent: 'secureRoot',
     url: '/thread/:threadId',
     controller: 'ThreadCtrl',
@@ -385,13 +384,17 @@ app.config(['$stateProvider', '$urlRouterProvider', '$locationProvider',
   });
 }]);
 
-app.run(['GApi', 'GAuth', 'GoogleClientId', 'GoogleScopes',
-        function(GApi, GAuth, GoogleClientId, GoogleScopes) {
-          GApi.load('gmail', 'v1');
-          GAuth.setClient(GoogleClientId);
-          GAuth.setScope(GoogleScopes.join(' '));
-        }
-      ]);
+app.run([
+  'GApi',
+  'GAuth',
+  'GoogleClientId',
+  'GoogleScopes',
+  function(GApi, GAuth, GoogleClientId, GoogleScopes) {
+    GApi.load('gmail', 'v1');
+    GAuth.setClient(GoogleClientId);
+    GAuth.setScope(GoogleScopes.join(' '));
+  }
+]);
 
 app.run([
   '$rootScope',
