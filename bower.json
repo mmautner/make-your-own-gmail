@@ -1,5 +1,5 @@
 {
-  "name": "scriptermail-ui",
+  "name": "make-your-own-gmail",
   "version": "0.0.0",
   "authors": [
     "Max Mautner <max.mautner@gmail.com>"
@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "angular": "~1.4.6",
-    "angular-google-gapi": "git@github.com:mmautner/angular-google-gapi.git#add-createRequest",
+    "angular-google-gapi": "git@github.com:mmautner/angular-google-gapi.git#master",
     "bootstrap": "~3.3.5",
     "angular-ui-router": "~0.2.15",
     "moment": "~2.10.6",

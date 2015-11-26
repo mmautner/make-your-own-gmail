@@ -2,93 +2,80 @@ module.exports = function(grunt) {
 
   require('load-grunt-tasks')(grunt);
 
-  var appConfig = {
-    app: 'app',
-    dist: 'dist'
-  };
-
   grunt.initConfig({
-    scriptermail: appConfig,
+    srcDir: 'app',
+    buildDir: 'dist',
+    tmpDir: '.tmp',
 
-    jshint: {
-      files: [
-        '<%= scriptermail.app =>/js/**/*.js'
-      ]
-    },
+    clean: [
+      '<%= buildDir %>',
+      '<%= tmpDir %>'
+    ],
 
-    filerev: {
+    replace: {
       dist: {
-        src: [
-          '<%= scriptermail.dist %>/css/{,*/}*.css',
+        options: {
+          patterns: [
+            {
+              match: 'GOOGLE_CLIENT_ID',
+              replacement: process.env.GOOGLE_CLIENT_ID
+            },
+          ]
+        },
+        files: [
+          {
+            expand: true,
+            flatten: true,
+            src: ['<%= srcDir %>/js/env.js'],
+            dest: '<%= buildDir %>/js/'
+          },
         ]
       }
     },
 
     ngtemplates: {
-      build: {
-        cwd: '<%= scriptermail.app =>',
-        src: 'views/**/*.html',
-        dest: './dist/js/templates.js',
+      default: {
+        cwd: '<%= srcDir %>',
+        src: 'views/*.html',
+        dest: '<%= buildDir %>/templates.js',
         options: {
-          prefix: '',
-          htmlmin: {
-            collapseBooleanAttributes: true,
-            collapseWhitespace: true,
-            removeAttributeQuotes: true,
-            removeComments: true,
-            removeEmptyAttributes: true,
-            removeRedundantAttributes: true,
-            removeScriptTypeAttributes: true,
-            removeStyleLinkTypeAttributes: true
-          },
-          bootstrap: function(module, script) {
-            return '\
-            define(["angular"], function (angular) {\
-              "use strict";\
-              var templates = angular.module("templates", []);\
-              templates.run(["$templateCache", function($templateCache) {\
-              ' + script + '\
-              }]);\
-              return templates;\
-            });';
-          }
+          usemin: '<%= buildDir %>/app.min.js',
+          module: 'scriptermail'
         }
       }
     },
 
     wiredep: {
-      app: {
-        src: ['<%= scriptermail.app %>/index.html'],
-        ignorePath:  /\.\.\//
+      default: {
+        src: ['<%= buildDir %>/index.html']
       }
     },
 
     useminPrepare: {
-      html: '<%= scriptermail.app %>/index.html',
+      html: '<%= buildDir %>/index.html',
       options: {
-        dest: '<%= scriptermail.dist %>',
-        flow: {
-          html: {
-            steps: {
-              js: ['concat', 'uglifyjs'],
-              css: ['cssmin']
-            },
-            post: {}
-          }
+        root: '<%= srcDir %>',
+        dest: '<%= buildDir %>'
+      }
+    },
+
+    usemin: {
+      html: '<%= buildDir %>/index.html',
+    },
+
+    uglify: {
+      generated: {
+        options: {
+          sourceMap: true
         }
       }
     },
 
-    // Performs rewrites based on filerev and the useminPrepare configuration
-    usemin: {
-      html: ['<%= scriptermail.dist %>/{,*/}*.html'],
-      css: ['<%= scriptermail.dist %>/css/{,*/}*.css'],
-      options: {
-        assetsDirs: [
-          '<%= scriptermail.dist %>',
-          '<%= scriptermail.dist %>/img',
-          '<%= scriptermail.dist %>/css'
-        ]
+    cssmin: {
+      generated: {
+        options: {
+          processImport: false
+        }
       }
     },
 
@@ -98,13 +85,11 @@ module.exports = function(grunt) {
         files: [{
           expand: true,
           dot: true,
-          cwd: '<%= scriptermail.app %>',
-          dest: '<%= scriptermail.dist %>',
+          cwd: '<%= srcDir %>',
+          dest: '<%= buildDir %>',
           src: [
             '*.{ico,png,txt}',
             '*.html',
-            'app.js',
-            'main.js',
             'views/*.html',
             'img/*',
             'js/**/*.js',
@@ -113,16 +98,25 @@ module.exports = function(grunt) {
         }, {
           expand: true,
           dot: true,
-          cwd: '<%= scriptermail.app %>',
-          dest: '<%= scriptermail.dist %>/',
+          cwd: '<%= srcDir %>',
+          dest: '<%= buildDir %>/',
           src: [
             'bower/**',
+          ]
+        }, {
+          expand: true,
+          dot: true,
+          flatten: true,
+          cwd: '<%= srcDir %>/bower',
+          dest: '<%= buildDir %>/fonts/',
+          src: [
+            '**/{,*/}*.{woff,woff2,eot,svg,ttf,otf}'
           ]
         }]
       },
       styles: {
         expand: true,
-        cwd: '<%= scriptermail.app %>/css',
+        cwd: '<%= srcDir %>/css',
         dest: '.tmp/css/',
         src: '{,*/}*.css'
       },
@@ -130,52 +124,77 @@ module.exports = function(grunt) {
         expand: true,
         dot: true,
         flatten: true,
-        cwd: '<%= scriptermail.app %>/bower',
         dest: '.tmp/fonts/',
         src: [
-          '**/{,*/}*.{woff,eot,svg,ttf,otf}'
+          '**/{,*/}*.{woff,woff2,eot,svg,ttf,otf}'
         ]
       }
     },
 
-    // https://github.com/wmluke/grunt-inline-angular-templates
-    inline_angular_templates: {
-      dist: {
+    connect: {
+      dev: {
         options: {
-          selector: 'body',       // (Optional) CSS selector of the element to use to insert the templates. Default is `body`.
-          method: 'append',       // (Optional) DOM insert method. Default is `prepend`.
-        },
-        files: {
-          'dist/index.html': ['dist/views/*.html']
+          port: process.env.PORT || 3474,
+          base: '<%= srcDir %>',
+          keepalive: true,
+          middleware: function(connect, options, middlewares) {
+            // http://stackoverflow.com/a/21514926
+            var modRewrite = require('connect-modrewrite');
+            middlewares.unshift(modRewrite(['!\\.html|\\.js|\\.woff|\\.woff2|\\.ttf|\\.svg|\\.css|\\.png$ /index.html [L]']));
+            return middlewares;
+          }
+        }
+      },
+      server: {
+        options: {
+          port: process.env.PORT || 3474,
+          base: '<%= buildDir %>',
+          //keepalive: true,
+          middleware: function(connect, options, middlewares) {
+            // http://stackoverflow.com/a/21514926
+            var modRewrite = require('connect-modrewrite');
+            middlewares.unshift(modRewrite(['!\\.html|\\.js|\\.woff|\\.woff2|\\.ttf|\\.svg|\\.css|\\.png$ /index.html [L]']));
+            return middlewares;
+          }
         }
       }
     },
 
-    // Empties folders to start fresh
-    clean: {
-      dist: {
-        files: [{
-          dot: true,
-          src: [
-            '.tmp',
-            '<%= scriptermail.dist %>/{,*/}*',
-            '!<%= scriptermail.dist %>/.git{,*/}*'
-          ]
-        }]
+    watch: {
+      gruntfile: {
+        files: ['Gruntfile.js'],
+        tasks: ['build']
       },
-      server: '.tmp'
-    },
+      index: {
+        files: ['<%= srcDir %>/**'],
+        tasks: ['build']
+      },
+      options: {
+        livereload: true
+      }
+    }
   });
 
-  grunt.registerTask('build', [
-    'clean:dist',
-    'wiredep',
+  grunt.registerTask('build-usemin', [
     'useminPrepare',
-    'copy:dist',
     'ngtemplates',
-    'filerev',
+    'concat:generated',
+    'cssmin:generated',
+    'uglify:generated',
     'usemin'
   ]);
 
+  grunt.registerTask('build', [
+    'clean',
+    'copy:dist',
+    'replace',
+    'wiredep',
+    'build-usemin'
+  ]);
+  grunt.registerTask('serve', [
+    'build',
+    'connect:server',
+    'watch'
+  ]);
   grunt.registerTask('default', ['build']);
 };

@@ -1,9 +1,0 @@
-{
-  "name": "scriptermail",
-  "root": "app",
-  "error_page": "error.html",
-  "routes": [
-    {"oauthcallback.html": "oauthcallback.html"},
-    {"**": "index.html"}
-  ]
-}

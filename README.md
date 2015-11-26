@@ -1,14 +1,13 @@
-# scriptermail-ui
+# Make Your Own Gmail.com
 
-An alternative user interface to your Gmail account that supports 
-open/click/unsub tracking and SalesForce CRM integration.
+A skinnable interface to your Gmail account.
 
 ### Development
 
 ```
 $ bower install
 $ npm install
-$ divshot s
+$ grunt serve
 
 Server started on port 3474
 ```
@@ -20,7 +19,3 @@ For instructions on reproducing the Gmail integration, see here:
 - https://developers.google.com/gmail/api/quickstart/js
 - https://github.com/maximepvrt/angular-google-gapi/
 - https://developers.google.com/api-client-library/javascript/start/start-js
-
-For instructions on reproducing the SalesForce integration, see here:
-
-- http://ccoenraets.github.io/salesforce-developer-workshop/Creating-the-Application.html

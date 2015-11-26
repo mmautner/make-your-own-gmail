@@ -2,25 +2,27 @@
 <head>
   <base href="/"></base>
 
-  <title>ScripterMail</title>
-  <!-- http://stackoverflow.com/questions/23813599/set-page-title-using-ui-router -->
+  <title>Make Your Own Gmail</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="shortcut icon" type="image/icon" href="/img/favicon.ico"/>
 
-  <script src="/__/env.js"></script>
-
-  <!-- build:css({.,app}) css/vendor.css -->
+  <!-- build:css vendor.min.css -->
+  <!-- bower:css -->
   <link href="bower/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
   <link href="bower/font-awesome/css/font-awesome.css" rel="stylesheet">
   <link href="bower/angular-growl-v2/build/angular-growl.css" rel="stylesheet">
   <link href="bower/ng-ckeditor/ng-ckeditor.css" rel="stylesheet">
+  <!-- endbower -->
   <!-- endbuild -->
 
-  <!-- build:css(.tmp) css/main.css -->
+  <!-- build:css app.min.css -->
   <link href="css/main.css" rel="stylesheet">
   <!-- endbuild -->
+
+  <script src="js/env.js"></script>
+
 </head>
 <body>
 
@@ -37,7 +39,9 @@
     </div>
   </div>
 
-  <!-- build:js(.) js/vendor.js -->
+  <!-- build:js vendor.min.js -->
+  <script src="bower/ng-ckeditor/libs/ckeditor/ckeditor.js"></script>
+  <!-- bower:js -->
   <script src="bower/angular/angular.js"></script>
   <script src="bower/angular-animate/angular-animate.js"></script>
   <script src="bower/angular-google-gapi/angular-google-gapi.js"></script>
@@ -45,12 +49,14 @@
   <script src="bower/moment/min/moment.min.js"></script>
   <script src="bower/angular-moment/angular-moment.min.js"></script>
   <script src="bower/angular-growl-v2/build/angular-growl.js"></script>
-  <script src="bower/ng-ckeditor/libs/ckeditor/ckeditor.js"></script>
   <script src="bower/ng-ckeditor/ng-ckeditor.js"></script>
   <script src="bower/favico.js/favico.js"></script>
   <script src="bower/email-addresses/lib/email-addresses.js"></script>
+  <!-- endbower -->
   <!-- endbuild -->
 
+  <!-- build:js app.min.js -->
   <script src="js/app.js"></script>
+  <!-- endbuild -->
 </body>
 </html>

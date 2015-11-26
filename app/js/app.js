@@ -189,44 +189,48 @@ app.service('FetchMessages', ['$window', 'GApi', 'email', 'InterestingLabels', '
         'q': query
       })
       .then(function(threadResult) {
-
-        var batch = $window.gapi.client.newBatch()
-        for (var i = 0; i < threadResult.threads.length; i++) {
-          var req = GApi.createRequest(
-            'gmail',
-            'users.threads.get', {
-              'userId': 'me',
-              'id': threadResult.threads[i].id
-            }
-          );
-          batch.add(req, {id: threadResult.threads[i].id});
-        }
-
-        return batch
-        .then(function(msgResult) {
-          // post-processing of threads
-          var unreadThreads = 0;
+        if (threadResult.threads) {
+          var batch = $window.gapi.client.newBatch()
           for (var i = 0; i < threadResult.threads.length; i++) {
-            var threadId = threadResult.threads[i].id;
-            var thread = msgResult.result[threadId].result;
-            var participants = email.getParticipants(thread.messages);
-            var subject = email.getSubject(thread.messages[thread.messages.length-1].payload.headers);
-            var unreadMsgs = email.getUnread(thread);
-            var datetimes = email.getDatetimes(thread);
-
-            threadResult.threads[i].messages = thread.messages;
-            threadResult.threads[i].participants = participants;
-            threadResult.threads[i].subject = subject;
-            threadResult.threads[i].unreadMsgs = unreadMsgs;
-            threadResult.threads[i].datetimes = datetimes;
-
-            if (unreadMsgs.length > 0) { unreadThreads++; }
+            var req = GApi.createRequest(
+              'gmail',
+              'users.threads.get', {
+                'userId': 'me',
+                'id': threadResult.threads[i].id
+              }
+            );
+            batch.add(req, {id: threadResult.threads[i].id});
           }
-          // update favicon count
-          favico.badge(unreadThreads);
 
-          return threadResult.threads;
-        });
+          return batch
+          .then(function(msgResult) {
+            // post-processing of threads
+            var unreadThreads = 0;
+            for (var i = 0; i < threadResult.threads.length; i++) {
+              var threadId = threadResult.threads[i].id;
+              var thread = msgResult.result[threadId].result;
+              var participants = email.getParticipants(thread.messages);
+              var subject = email.getSubject(thread.messages[thread.messages.length-1].payload.headers);
+              var unreadMsgs = email.getUnread(thread);
+              var datetimes = email.getDatetimes(thread);
+
+              threadResult.threads[i].messages = thread.messages;
+              threadResult.threads[i].participants = participants;
+              threadResult.threads[i].subject = subject;
+              threadResult.threads[i].unreadMsgs = unreadMsgs;
+              threadResult.threads[i].datetimes = datetimes;
+
+              if (unreadMsgs.length > 0) { unreadThreads++; }
+            }
+            // update favicon count
+            favico.badge(unreadThreads);
+
+            return threadResult.threads;
+          });
+        } else {
+          favico.badge(0);
+          return [];
+        }
       });
 
     };
@@ -304,7 +308,7 @@ app.controller('ThreadCtrl', ['GApi', '$scope', '$rootScope', '$stateParams', 'g
 }]);
 
 
-app.constant('GoogleClientId', __env.GOOGLE_CLIENT_ID);
+app.constant('GoogleClientId', SPICY_CONFIG.GOOGLE_CLIENT_ID);
 app.constant('GoogleScopes', [
   'https://mail.google.com/',
   'https://www.googleapis.com/auth/userinfo.email'
