@@ -17,5 +17,5 @@ deployment:
     branch: master
     commands:
       - grunt build
-      - npm install -g firebase-tools
-      - firebase deploy --token=$FIREBASE_TOKEN
+      - npm install -g surge
+      - surge --project ./dist/ --domain "scriptermail.com"
