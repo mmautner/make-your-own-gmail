@@ -2,7 +2,7 @@
 
 A customizable, independent interface to your Gmail account.
 
-![](app/img/usage.png =600x)
+<img src="app/img/usage.png" width="600">
 
 This is an editable scaffold for building your own interface for interacting with your Gmail email account. Familiarity with [JavaScript](http://www.tutorialspoint.com/javascript/) and [AngularJS](http://www.tutorialspoint.com/angularjs/) is ideal.
 

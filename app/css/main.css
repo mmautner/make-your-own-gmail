@@ -23,6 +23,12 @@ a {
 a:hover {
   font-weight: bold;
 }
+
+.hero a {
+  color: blue;
+  text-decoration: underline;
+}
+
 .container {
   padding: 0 20px !important;
   margin: 0 20px !important;
