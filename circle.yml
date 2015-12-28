@@ -18,4 +18,4 @@ deployment:
     commands:
       - grunt build
       - npm install -g surge
-      - surge --project ./dist/ --domain "scriptermail.com"
+      - surge --project ./dist/ --domain "gmail.maxmautner.com"
